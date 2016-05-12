@@ -12,6 +12,7 @@ class Pixel:
         self.y = y
         self.error = 0
         self.value = 0
+        self.neighbor_count = 0
 
 
 class TextureGenerator:
@@ -25,30 +26,24 @@ class TextureGenerator:
         pass
 
 
-def has_filled_neighbours(image, pos, window_size):
-    flag = False
-    for i in xrange(pos.x, pos.x + window_size):
-        for j in xrange(pos.y, pos.y + window_size):
-            if image[i, j] != 0:
-                flag = True
-    return flag
+def has_filled_neighbours(image, pixel, window_size):
+    half_window = window_size / 2
+    neighbor_count = np.count_nonzero(image[pixel.x - half_window:pixel.x + half_window,
+                                      pixel.y - half_window:pixel.y + half_window])
+    return neighbor_count
 
 
-def get_unfilled_neighbours(image, window_size):
-    """
-
-    :param image:
-    :param window_size:
-    :return:
-    """
+def get_unfilled_pixel_neighbours_list(image, window_size):
     lst = []
-    for i in xrange(image.shape[0]):
-        for j in xrange(image.shape[1]):
+    for i in xrange(2, image.shape[0] - 2):
+        for j in xrange(2, image.shape[1] - 2):
             pos = Pixel(i, j)
-            if has_filled_neighbours(image, pos, window_size):
+            pos.neighbor_count = has_filled_neighbours(image, pos, window_size)
+            if pos.neighbor_count > 0:
                 lst.append(pos)
     np.random.shuffle(lst)
-    return lst
+
+    return sorted(lst, key=lambda x: x.neightbor_count, reverse=True)
 
 
 def get_neighborhood_window(image, pixel, window_size):
@@ -59,11 +54,8 @@ def get_neighborhood_window(image, pixel, window_size):
     :param window_size:
     :return:
     """
-    template = np.array((window_size, window_size))
-
-    for i in xrange(pixel.x, pixel.x + window_size):
-        for j in xrange(pixel.y, pixel.y + window_size):
-            template[i - pixel.x, j - pixel.y] = image[i, j]
+    half_window = window_size / 2
+    template = image[pixel.x - half_window:pixel.x + half_window, pixel.y - half_window:pixel.y + half_window]
 
     return template
 
@@ -71,7 +63,7 @@ def get_neighborhood_window(image, pixel, window_size):
 def get_candidate_list(template, sample_image, window_size):
     # init distance matrix
     ssd = np.zeros((sample_image))
-
+    # a.repeat(2, axis=0)
     # construct a bitmask
     mask = bitmask(template, window_size)
     g_mask = gauss_mask(window_size)
@@ -118,11 +110,17 @@ def gauss_mask(window_size):
 
 # numpy arrays
 def grow_image(sample_image, image, window_size):
+    half_window = window_size / 2
+    size = (sample_image.shape[0] + half_window,sample_image.shape[1] + half_window)
+
+    safe_image = np.zeros(size)
+    safe_image[2:-2,2:-2] = sample_image
+
     while True:
         flag = False
-        pixelList = get_unfilled_neighbours(image)
-        for pixel in pixelList:
-            template = get_neighborhood_window(image, pixel, window_size)
+        pixel_list = get_unfilled_pixel_neighbours_list(safe_image)
+        for pixel in pixel_list:
+            template = image[pixel.x - half_window:pixel.x + half_window, pixel.y - half_window:pixel.y + half_window]
             candidates = get_candidate_list(template, sample_image)
             candidate = np.random.choice(candidates)
             if candidate.error < MAX_ERR_TRESHOLD:
