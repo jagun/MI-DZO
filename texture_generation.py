@@ -68,11 +68,25 @@ def get_neighborhood_window(image, pixel, window_size):
     return template
 
 
-def get_candidate_list(template, sample_image):
-    # (x, y, err)
-    # returns list of Pixel objects
+def get_candidate_list(template, sample_image, window_size):
+    # init distance matrix
+    ssd = np.zeros((sample_image))
+
+    # construct a bitmask
+    mask = bitmask(template, window_size)
+    g_mask = gauss_mask(window_size)
+    total_wight = np.sum(mask * g_mask)
+
     pass
 
+
+def bitmask(template, window_size):
+    mask = np.zeros((window_size, window_size))
+    for i in xrange(window_size):
+        for j in xrange(window_size):
+            if template[i, j] != 0:
+                mask[i, j] = 1
+    return mask
 
 def gauss_2d(x, y, center, sigma):
     """
@@ -88,13 +102,18 @@ def gauss_2d(x, y, center, sigma):
     return np.exp(-(left + right))
 
 
-def gauss_2d_sample(window_size):
+def gauss_mask(window_size):
+    """
+
+    :param window_size: better to be an even number
+    :return:
+    """
     sample = np.zeros((window_size, window_size))
     center = (window_size / 2) + 1
     for x in xrange(window_size):
         for y in xrange(window_size):
             sample[x, y] = gauss_2d(x, y, center)
-
+    return sample
 
 
 # numpy arrays
@@ -113,3 +132,4 @@ def grow_image(sample_image, image, window_size):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    window_size = 11
