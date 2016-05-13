@@ -63,22 +63,14 @@ def get_neighborhood_window(image, pixel, window_size):
 def get_candidate_list(template, sample_image, window_size):
     # init distance matrix
     ssd = np.zeros((sample_image))
-    # a.repeat(2, axis=0)
+    # np.tile(sample_image, (N - w + 1, M - w + 1)
+    # np.tile(template, (N - w + 1, M - w + 1)
     # construct a bitmask
-    mask = bitmask(template, window_size)
-    g_mask = gauss_mask(window_size)
+    mask = template != 0
+
     total_wight = np.sum(mask * g_mask)
 
-    pass
-
-
-def bitmask(template, window_size):
-    mask = np.zeros((window_size, window_size))
-    for i in xrange(window_size):
-        for j in xrange(window_size):
-            if template[i, j] != 0:
-                mask[i, j] = 1
-    return mask
+    return []
 
 def gauss_2d(x, y, center, sigma):
     """
@@ -111,8 +103,8 @@ def gauss_mask(window_size):
 # numpy arrays
 def grow_image(sample_image, image, window_size):
     half_window = window_size / 2
-    size = (sample_image.shape[0] + half_window,sample_image.shape[1] + half_window)
-
+    size = (sample_image.shape[0] + half_window, sample_image.shape[1] + half_window)
+    g_mask = gauss_mask(window_size)
     safe_image = np.zeros(size)
     safe_image[2:-2,2:-2] = sample_image
 
