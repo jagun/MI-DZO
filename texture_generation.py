@@ -1,4 +1,3 @@
-import string
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
@@ -7,6 +6,9 @@ from sklearn.feature_extraction import image as img_features
 
 
 class Pixel:
+    """
+    Pixel class to store information about pixel
+    """
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -16,6 +18,12 @@ class Pixel:
 
 
 def get_unfilled_pixel_neighbours_list(image, window_size):
+    """
+    Returns list of pixels that have non-zero pixels in their neighborhood
+    :param image: image to fill
+    :param window_size: size of neighborhood window
+    :return: list of pixels sorted by neighbor count descending
+    """
     lst = []
     half_window = window_size / 2
     for i in xrange(half_w, image.shape[0] - half_w):
@@ -23,9 +31,9 @@ def get_unfilled_pixel_neighbours_list(image, window_size):
             if image[i, j] != 0:
                 continue
             pixel = Pixel(i, j)
-            neiborhood = image[pixel.x - half_window:pixel.x + half_window + 1,
+            neighborhood = image[pixel.x - half_window:pixel.x + half_window + 1,
                                       pixel.y - half_window:pixel.y + half_window + 1]
-            pixel.neighbor_count = np.count_nonzero(neiborhood)
+            pixel.neighbor_count = np.count_nonzero(neighborhood)
             if pixel.neighbor_count > 0:
                 lst.append(pixel)
 
@@ -35,6 +43,14 @@ def get_unfilled_pixel_neighbours_list(image, window_size):
 
 
 def get_candidate_list(template, gauss_mask, patches, win_size):
+    """
+    Returns list of possible values for current pixel
+    :param template: current pixel's window
+    :param gauss_mask: 2d gauss mask with center in the middle of window, size win_zize x win_zize
+    :param patches: sample image patches, candidates for pixel value
+    :param win_size: size of neighborhood window
+    :return: list of candidate pixels
+    """
     threshold = 0.1
 
     mask = template != 0
@@ -44,6 +60,8 @@ def get_candidate_list(template, gauss_mask, patches, win_size):
     if total_weight == 0:
         total_weight = 1
 
+    # place where magic happens, vectorized multiplication
+    # stores distance for each pixel in sample image
     SSD = np.sum(np.multiply((patches - template) ** 2, weight), axis=(1, 2)) / float(total_weight)
 
     min_err = SSD.min()
@@ -58,6 +76,11 @@ def get_candidate_list(template, gauss_mask, patches, win_size):
 
 
 def get_gauss_mask(window_size):
+    """
+    Returns gauss mask of size window_size x window_size
+    :param window_size: size of neighborhood window
+    :return: 2d numpy array
+    """
     gauss = np.zeros((window_size, window_size))
     center = window_size / 2
     sigma = window_size / 6.4
@@ -70,8 +93,16 @@ def get_gauss_mask(window_size):
 
 
 def grow_image(sample_image, image, image_size, window_size):
+    """
+    Fills image from sample
+    :param sample_image: sample image to grow texture from
+    :param image: target image to fill in, padded with zeros to halde corners
+    :param image_size: actual image size to keep track progress
+    :param window_size: size of neighborhood window
+    :return: filled image
+    """
     unfilled = image_size - np.count_nonzero(image)
-    max_err_treshold = 0.3
+    max_err_threshold = 0.3
     iteration = 1
     prev = 0
 
@@ -94,20 +125,14 @@ def grow_image(sample_image, image, image_size, window_size):
                 continue
 
             candidate = np.random.choice(candidates)
-            if candidate.error <= max_err_treshold:
+            if candidate.error <= max_err_threshold:
                 image[pixel.x, pixel.y] = candidate.value
                 flag = True
                 unfilled -= 1
                 print 'filled %f' % ((image_size - float(unfilled)) / image_size)
 
-            progress = (image_size - float(unfilled)) / image_size
-            if progress - prev >= 0.1:
-                mpimg.imsave('tmp/progress_%d.png' % iteration, image, cmap=plt.get_cmap('gray'))
-                iteration += 1
-                prev = progress
-
         if not flag:
-            max_err_treshold *= 1.1
+            max_err_threshold *= 1.1
 
     return image
 
@@ -126,6 +151,9 @@ if __name__ == '__main__':
     half_w = window_size / 2
 
     size = (args.width, args.height)
+    # For us to be able to fill in corners pad image size with half of the window
+    # otherwise we will not be able to get template for upper and bottom rows
+    # and left / right columns
     image_size = (args.width + half_w * 2, args.height + half_w * 2)
 
     img = mpimg.imread(filename)
