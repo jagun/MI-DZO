@@ -1,0 +1,113 @@
+\documentclass[10pt, a5paper]{article}
+\usepackage[margin=0.25in]{geometry}
+\usepackage{epsf,epic,eepic,eepicemu}
+\usepackage{graphicx}
+%\documentstyle[epsf,epic,eepic,eepicemu]{article}
+\usepackage[cp1250]{inputenc}
+\usepackage[export]{adjustbox}[2011/08/13]
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{algorithmic}
+\usepackage{float}
+
+\begin{document}
+
+\begin{center}
+	MI-DZO, ÈVUT 2015/2016: \\
+	Texture Synthesis by Non-parametric Sampling \\
+	Stamenov Sergii
+\end{center}
+
+\section{Úvod}
+
+Pøedmìtem tyto semestrální práce je implementace metody neparametrického generovaní textur. \cite{Efros99}
+
+\section{Pseudokod}
+
+Vstupní parametry:
+\begin{itemize}
+	\item SampleImage - vzorkový obrázek 
+	\item Image - obrázek který chceme vyplnit
+	\item WindowSize - uživatelský parametr, velikost okna
+\end{itemize}
+
+\begin{algorithmic}
+\STATE function GrowImage(SampleImage,Image,WindowSize):
+\WHILE {Image not filled}
+\STATE progress = 0
+\STATE PixelList = GetUnfilledNeighbors(Image)
+\FORALL {Pixel in PixelList}
+	\STATE Template = GetNeighborhoodWindow(Pixel)
+	\STATE BestMatches = FindMatches(Template, SampleImage)
+	\STATE BestMatch = RandomPick(BestMatches)
+	\IF {BestMatch.error $ < $ MaxErrThreshold}
+		\STATE Pixel.value = BestMatch.value
+		\STATE progress = 1
+	\ENDIF
+\ENDFOR
+\IF {progress == 0}
+	\STATE MaxErrThreshold = MaxErrThreshold $*$ 1.1
+\ENDIF
+\ENDWHILE
+\end{algorithmic}
+
+GetUnfilledNeighbors - vrací seznam nevyplnìných pixelù, které mají vyplnìné sousedí pixely ve svém okolí. Seznam náhodnì permutován a seøazen podle poètu vyplnìných sousedu.
+
+GetNeighborhoodWindow - vrací okno velikosti WindowSize kolem daného pixelu (pixel je uprostøed okna).
+
+\newpage
+
+definice funkce FindMatches:
+
+\begin{algorithmic}
+\STATE function FindMatches(Template,SampleImage)
+\STATE ValidMask = 1s where Template is filled, 0s otherwise
+\STATE GaussMask = Gaussian2D(WindowSize, Sigma)
+\STATE TotWeight = sum(GaussiMask $.*$ ValidMask)
+\FOR {$i, j$ in SampleImage}
+	\STATE patch = GetNeighborhoodWindow(i,j)
+	\STATE dist = (Template - patch)$^2$
+	\STATE ssd = sum(dist $*.$ ValidMask $*.$ GaussMask)
+	\STATE SSD(i,j) = ssd / TotWeight
+\ENDFOR
+	\STATE PixelList = all pixels (i, j) where SSD(i, j) $ \le $ min(SSD) $*$ (1+ErrThreshold)
+	\RETURN PixelList	
+\end{algorithmic}
+
+Kde $.*$ znamená souèin po složkách.
+
+Konstanty:
+\begin{itemize}
+	\item ErrThreshold = 0.1
+	\item MaxErrThreshold = 0.3
+	\item Sigma = WindowSize $/$ 6.4
+\end{itemize}
+
+\section{Výsledky}
+\begin{figure}[H]
+	\includegraphics[scale=0.7, center]{samples.png}
+	\caption{Výsledky: vzorec zleva, nové vygenerované obrázky z oknem 5, 11, 15, 23 px. }
+	\label{samples}
+\end{figure}
+
+\section{Mìøeni}
+
+Na obrázku \ref{time_graf} uvedené výsledky mìøeni rychlosti generovaní textury velikosti $128 \times 128$ px z vzorku $ 64 \times 64 $ px. Je vidìt že závislost je lineární. 
+v závislosti na velikosti okna.
+
+\begin{figure}[H]
+	\includegraphics[scale=0.7, center]{time.png}
+	\caption{ Závislost èasu na velikostí okna }
+	\label{time_graf}
+\end{figure}
+
+\section{Závìr}
+
+Kvalita vygenerovaných textur záleží na velikosti okna, velikosti vzorku a složitosti textury.
+U složitìjších pøípadu algoritmus ma tendenci generovat šum, v takovém pøípadì doporuèeno zvìtšit velikost okna
+a velikost vzorkového obrázku.
+
+\bibliographystyle{csn690.bst}
+\bibliography{EfrosLeung.bib}
+
+\end{document}
