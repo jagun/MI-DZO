@@ -141,8 +141,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('input_file', type=str, help='sample file path')
     parser.add_argument('window_size', type=int, help='sliding window size')
-    parser.add_argument('width', type=int, help='generated texture size')
-    parser.add_argument('height', type=int, help='generated texture size')
+    parser.add_argument('width', type=int, help='generated texture width')
+    parser.add_argument('height', type=int, help='generated texture height')
 
     args = parser.parse_args()
 
